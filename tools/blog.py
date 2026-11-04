@@ -304,7 +304,7 @@ def cmd_ship(args):
     print("→ 等部署（Ctrl-C 可以走开，不影响）")
     sha = run(["git", "rev-parse", "HEAD"], capture=True)[:7]
     try:
-        for _ in range(40):
+        for i in range(40):
             out = run(
                 ["gh", "api", f"repos/{repo_slug()}/actions/runs?per_page=1",
                  "--jq", '.workflow_runs[0] | "\\(.head_sha[0:7]) \\(.status) \\(.conclusion // "-")"'],
@@ -325,6 +325,12 @@ def cmd_ship(args):
                     ok("已上线")
                 else:
                     print("  ✗ 部署失败了：gh run view --log-failed", file=sys.stderr)
+                return
+            if i >= 15:
+                # GitHub 偶尔会把这个 job 挂在那儿十几分钟不动，站点其实早更新了
+                print("  GitHub 那边像是卡住了，别干等：")
+                print("    看状态  gh run list --limit 1")
+                print(f"    看站点  {SITE}/")
                 return
             if not args.wait:
                 return
