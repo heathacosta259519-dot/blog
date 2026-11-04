@@ -117,6 +117,8 @@ const isActive = (href: string) => {
         try {
           localStorage.setItem('theme', next);
         } catch {}
+        // 需要跟着换配色的东西（比如 mermaid 图）订阅这个事件
+        document.dispatchEvent(new CustomEvent('themechange', { detail: { theme: next } }));
       });
     </script>
   </body>

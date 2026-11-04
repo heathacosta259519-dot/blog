@@ -60,6 +60,68 @@ const backLabel = entry.kind === 'note' ? '全部笔记' : '全部随笔';
   </article>
 </BaseLayout>
 
+<script>
+  // mermaid 只在页面上真有图时才下载（动态 import 会拆成独立 chunk）
+  const blocks = [...document.querySelectorAll<HTMLElement>('pre.astro-code[data-language="mermaid"]')];
+
+  if (blocks.length > 0) {
+    const figures = blocks.map((pre) => {
+      const box = document.createElement('div');
+      box.className = 'mermaid-fig';
+      box.setAttribute('role', 'img');
+      pre.replaceWith(box);
+      return { box, code: (pre.textContent ?? '').trim() };
+    });
+
+    const paint = async () => {
+      const dark = document.documentElement.dataset.theme === 'dark';
+      const { default: mermaid } = await import('mermaid');
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: dark ? 'dark' : 'neutral',
+        fontFamily: getComputedStyle(document.body).fontFamily,
+        themeVariables: { fontSize: '14px' },
+      });
+
+      for (const [i, { box, code }] of figures.entries()) {
+        try {
+          const { svg } = await mermaid.render(`mmd-${i}-${dark ? 'd' : 'l'}`, code);
+          box.innerHTML = svg;
+        } catch (err) {
+          console.warn('[mermaid] 渲染失败，保留源码', err);
+          box.textContent = code;
+          box.classList.add('mermaid-fig--failed');
+        }
+      }
+    };
+
+    paint();
+    document.addEventListener('themechange', paint);
+  }
+</script>
+
+<style>
+  .mermaid-fig {
+    margin: 0;
+    padding: 0.4rem 0;
+    overflow-x: auto;
+  }
+
+  .mermaid-fig svg {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin-inline: auto;
+  }
+
+  .mermaid-fig--failed {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    white-space: pre;
+    color: var(--ink-mute);
+  }
+</style>
+
 <style>
   .post-prose {
     padding-top: 1.75rem;
