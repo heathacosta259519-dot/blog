@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { url, SITE } from '../consts';
+import { SITE } from '../consts';
 ---
 
 <BaseLayout
@@ -55,7 +55,7 @@ import { url, SITE } from '../consts';
       <h2>管理方式：bare 仓库 + $HOME 当工作区</h2>
       <p>
         不用软链，也不用 stow。Git 目录放在 <code>~/.dotfiles.git</code>，工作区直接是 <code>$HOME</code>，
-        配置文件留在原位。细节写在 <a href={url('/notes/git-bare-dotfiles/')}>这篇笔记</a> 里。
+        配置文件留在原位。
       </p>
 
       <pre><code>git clone --bare &lt;repo-url&gt; "$HOME/.dotfiles.git"

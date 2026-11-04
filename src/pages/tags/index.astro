@@ -14,13 +14,17 @@ const rows = [...tags.entries()].sort(
   <div class="shell">
     <header class="page-head">
       <h1>标签</h1>
-      <p>{total} 篇内容，{tags.size} 个标签。按篇数排序。</p>
+      <p>
+        {total > 0 ? `${total} 篇内容，${tags.size} 个标签，按篇数排序。` : '按标签浏览全部笔记与随笔。'}
+      </p>
     </header>
     <div class="rule"></div>
 
-    <ul class="tag-list">
-      {
-        rows.map(([tag, list]) => (
+    {rows.length === 0 ? (
+      <p class="entries__empty">还没有内容，标签自然也是空的。</p>
+    ) : (
+      <ul class="tag-list">
+        {rows.map(([tag, list]) => (
           <li class="tag-row">
             <a class="tag-row__name" href={url(`/tags/${encodeURIComponent(tag)}/`)}>
               {tag}
@@ -34,9 +38,9 @@ const rows = [...tags.entries()].sort(
               ))}
             </ul>
           </li>
-        ))
-      }
-    </ul>
+        ))}
+      </ul>
+    )}
   </div>
 </BaseLayout>
 

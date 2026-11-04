@@ -10,7 +10,7 @@ const entries = await entriesOf('essay');
   <div class="shell">
     <header class="page-head">
       <h1>随笔</h1>
-      <p>短一点，随手写。关于工具、方法，和每天撞上的琐事。共 {entries.length} 篇。</p>
+      <p>短一点，随手写。关于工具、方法，和每天撞上的琐事{entries.length > 0 && `，共 ${entries.length} 篇`}。</p>
     </header>
     <div class="rule"></div>
     <EntryList entries={entries} />
