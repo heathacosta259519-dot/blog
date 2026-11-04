@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url, SITE } from '../consts';
+---
+
+<BaseLayout
+  title="dotfiles"
+  description="Arch Linux 配置的来由：niri、waybar、自建主题引擎、nvim 配色生成器。"
+>
+  <div class="shell">
+    <header class="page-head">
+      <h1>dotfiles</h1>
+      <p>配置在仓库里，这里只写为什么这么配。仓库目前是私有的。</p>
+    </header>
+    <div class="rule"></div>
+
+    <div class="prose" style="padding-top:1.8rem">
+      <h2>里面有什么</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>组件</th>
+            <th>作用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>niri</code></td>
+            <td>滚动式平铺窗管，键位跟着双手走</td>
+          </tr>
+          <tr>
+            <td><code>waybar</code></td>
+            <td>状态栏，模块分层写，不塞成一大坨</td>
+          </tr>
+          <tr>
+            <td>主题引擎</td>
+            <td>改一个种子色，整套配色跟着变</td>
+          </tr>
+          <tr>
+            <td>nvim 配色生成器</td>
+            <td>按对比度阈值算高亮色，而不是抄调色板</td>
+          </tr>
+          <tr>
+            <td><code>clavis</code></td>
+            <td>本机的小工具与显示配置</td>
+          </tr>
+          <tr>
+            <td>clash 脚本族</td>
+            <td>订阅拉取与规则切换的封装</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>管理方式：bare 仓库 + $HOME 当工作区</h2>
+      <p>
+        不用软链，也不用 stow。Git 目录放在 <code>~/.dotfiles.git</code>，工作区直接是 <code>$HOME</code>，
+        配置文件留在原位。细节写在 <a href={url('/notes/git-bare-dotfiles/')}>这篇笔记</a> 里。
+      </p>
+
+      <pre><code>git clone --bare &lt;repo-url&gt; "$HOME/.dotfiles.git"
+alias dot='/usr/bin/git --git-dir=$HOME/.dotfiles.git --work-tree=$HOME'
+dot config --local status.showUntrackedFiles no
+dot checkout</code></pre>
+
+      <h2>为什么不公开</h2>
+      <p>
+        dotfiles 仓库里天然混着密钥、订阅链接、内网地址和主机名。把这样的仓库公开，靠"我记得删过"是不可靠的。
+        所以默认私有，公开的只是取舍的理由——配置两年就过时，理由不会。
+      </p>
+
+      <p>
+        需要某一段配置，去 <a href={SITE.github} rel="me noopener">GitHub</a> 提 issue 说明用途，能给的就给。
+      </p>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-bottom: 1.6rem;
+  }
+</style>

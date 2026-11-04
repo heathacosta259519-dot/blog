@@ -1,0 +1,27 @@
+{
+  "name": "akagi-blog",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "pnpm run check:leaks && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "sync:notes": "node scripts/sync-notes.mjs",
+    "check:leaks": "node scripts/check-leaks.mjs"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.4.5"
+  },
+  "devDependencies": {
+    "fast-glob": "^3.3.3",
+    "gray-matter": "^4.0.3",
+    "lxgw-wenkai-lite-webfont": "^1.7.0",
+    "typescript": "^5.9.0"
+  }
+}

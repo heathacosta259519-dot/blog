@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import EntryLayout from '../../layouts/EntryLayout.astro';
+import { readingTime } from '../../lib/content';
+import { url } from '../../consts';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('notes', ({ data }) => !data.draft);
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note },
+  }));
+}
+
+const { note } = Astro.props;
+const { Content } = await render(note);
+const minutes = readingTime(note.body);
+---
+
+<EntryLayout
+  entry={{
+    title: note.data.title,
+    description: note.data.description,
+    date: note.data.date,
+    updated: note.data.updated,
+    kind: 'note',
+    tags: note.data.tags,
+    href: url(`/notes/${note.id}/`),
+    id: note.id,
+    progress: note.data.progress,
+  }}
+  minutes={minutes}
+>
+  <Content />
+</EntryLayout>

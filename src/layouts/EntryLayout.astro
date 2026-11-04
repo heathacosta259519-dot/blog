@@ -1,0 +1,169 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { url } from '../consts';
+import type { Entry } from '../lib/content';
+import { long } from '../lib/date';
+
+interface Props {
+  entry: Entry;
+  minutes: number;
+}
+
+const { entry, minutes } = Astro.props;
+
+const kindLabel = entry.kind === 'note' ? '笔记' : '随笔';
+const backHref = entry.kind === 'note' ? '/notes/' : '/essays/';
+const backLabel = entry.kind === 'note' ? '全部笔记' : '全部随笔';
+---
+
+<BaseLayout
+  title={entry.title}
+  description={entry.description}
+  ogType="article"
+  published={entry.date}
+>
+  <article class="shell">
+    <div class="post-grid">
+      <h1 class="post-title">{entry.title}</h1>
+
+      <aside class="post-rail" aria-label="文章信息">
+        <time datetime={entry.date.toISOString()}>{long(entry.date)}</time>
+        <span class="post-rail__kind">{kindLabel}</span>
+        <span>{minutes} 分钟</span>
+        {
+          entry.progress && (
+            <span class="post-rail__note">{entry.progress}</span>
+          )
+        }
+        {
+          entry.tags.length > 0 && (
+            <ul class="post-rail__tags">
+              {entry.tags.map((t) => (
+                <li>
+                  <a href={url(`/tags/${encodeURIComponent(t)}/`)}>#{t}</a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </aside>
+
+      <div class="prose post-prose">
+        <slot />
+      </div>
+    </div>
+
+    <footer class="post-foot">
+      <a href={url(backHref)}>← {backLabel}</a>
+      <a href={url('/rss.xml')}>订阅 RSS</a>
+    </footer>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-prose {
+    padding-top: 1.75rem;
+  }
+
+  .post-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: clamp(2.25rem, 6vw, 3.5rem);
+  }
+
+  .post-title {
+    font-size: clamp(1.7rem, 4.2vw, 2.35rem);
+    line-height: 1.34;
+    max-width: none;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .post-rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.9rem;
+    padding: 0.9rem 0 1.9rem;
+    font-size: 0.8125rem;
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .post-rail__kind {
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+
+  .post-rail__note {
+    flex-basis: 100%;
+    font-size: 0.8125rem;
+    line-height: 1.7;
+    color: var(--ink-mute);
+  }
+
+  .post-rail__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .post-rail__tags a {
+    color: var(--ink-mute);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .post-rail__tags a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  @media (min-width: 62rem) {
+    .post-grid {
+      grid-template-columns: 10.5rem minmax(0, 41rem);
+      column-gap: 3.5rem;
+    }
+
+    .post-title {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .post-prose {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .post-rail {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      align-self: start;
+      position: sticky;
+      top: 6rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.6rem 0 0;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+    }
+
+    .post-rail__kind {
+      order: -1;
+      font-size: 0.75rem;
+      letter-spacing: 0.16em;
+    }
+
+    .post-rail__tags {
+      margin-top: 0.5rem;
+    }
+
+    .post-foot {
+      margin-left: 14rem;
+      max-width: 41rem;
+    }
+  }
+</style>

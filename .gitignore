@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.astro/
+*.log
+.DS_Store
+.env
+.env.*
+src/content/notes/.sync-manifest.json
+scripts/sync.local.json
+scripts/leak-rules.local.json

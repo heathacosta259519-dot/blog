@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { allEntries, tagIndex } from '../../lib/content';
+import { url } from '../../consts';
+
+const tags = await tagIndex();
+const total = (await allEntries()).length;
+const rows = [...tags.entries()].sort(
+  (a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], 'zh'),
+);
+---
+
+<BaseLayout title="标签" description="按标签浏览全部笔记与随笔。">
+  <div class="shell">
+    <header class="page-head">
+      <h1>标签</h1>
+      <p>{total} 篇内容，{tags.size} 个标签。按篇数排序。</p>
+    </header>
+    <div class="rule"></div>
+
+    <ul class="tag-list">
+      {
+        rows.map(([tag, list]) => (
+          <li class="tag-row">
+            <a class="tag-row__name" href={url(`/tags/${encodeURIComponent(tag)}/`)}>
+              {tag}
+              <span class="tag-row__count">{list.length}</span>
+            </a>
+            <ul class="tag-row__items">
+              {list.slice(0, 4).map((e) => (
+                <li>
+                  <a href={e.href}>{e.title}</a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-bottom: 1.6rem;
+  }
+
+  .rule {
+    margin-bottom: 0.3rem;
+  }
+
+  .tag-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tag-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+    padding-block: 1.1rem;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .tag-row__name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    color: var(--ink);
+  }
+
+  .tag-row__name:hover {
+    color: var(--accent);
+  }
+
+  .tag-row__count {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-mute);
+  }
+
+  .tag-row__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.875rem;
+    color: var(--ink-mute);
+  }
+
+  .tag-row__items a {
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .tag-row__items a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  @media (min-width: 48rem) {
+    .tag-row {
+      grid-template-columns: 11rem minmax(0, 1fr);
+      align-items: baseline;
+      gap: 1.5rem;
+    }
+
+    .tag-row__items {
+      gap: 0.3rem 1.4rem;
+    }
+  }
+</style>

@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EntryList from '../components/EntryList.astro';
+import { allEntries } from '../lib/content';
+import { url } from '../consts';
+
+const entries = (await allEntries()).slice(0, 8);
+---
+
+<BaseLayout description="AKAGI_0612 的个人手记：编程学习笔记、日常随笔，以及 Arch Linux 配置背后的取舍。">
+  <div class="shell">
+    <header class="masthead">
+      <h1>把学过的东西，写下来。</h1>
+      <p class="lede">
+        编程、Linux、一点财务，和每天撞上的琐事。写下来是为了不白学一遍，顺便给以后的自己留个入口。
+      </p>
+      <div class="rule"></div>
+    </header>
+
+    <section class="entries__intro" aria-labelledby="recent">
+      <h2 class="section-head" id="recent">最近</h2>
+      <EntryList entries={entries} />
+      <p class="more">
+        <a href={url('/notes/')}>全部笔记</a>
+        <a href={url('/essays/')}>全部随笔</a>
+      </p>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .masthead .rule {
+    margin-top: clamp(2rem, 5vw, 3rem);
+  }
+
+  .entries__intro {
+    padding-bottom: 1rem;
+  }
+
+  .more {
+    display: flex;
+    gap: 1.6rem;
+    margin: 1.9rem 0 0;
+    font-size: 0.9375rem;
+  }
+
+  .more a {
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .more a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+</style>

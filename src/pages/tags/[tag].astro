@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import EntryList from '../../components/EntryList.astro';
+import { tagIndex } from '../../lib/content';
+import { url } from '../../consts';
+
+export async function getStaticPaths() {
+  const tags = await tagIndex();
+  return [...tags.entries()].map(([tag, entries]) => ({
+    params: { tag },
+    props: { tag, entries },
+  }));
+}
+
+const { tag, entries } = Astro.props;
+---
+
+<BaseLayout title={`#${tag}`} description={`标签 #${tag} 下的全部内容。`}>
+  <div class="shell">
+    <header class="page-head">
+      <h1>#{tag}</h1>
+      <p>
+        {entries.length} 篇 · <a href={url('/tags/')} class="back">全部标签</a>
+      </p>
+    </header>
+    <div class="rule"></div>
+    <EntryList entries={entries} />
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-bottom: 1.6rem;
+  }
+
+  .rule {
+    margin-bottom: 0.4rem;
+  }
+
+  .back {
+    color: var(--ink-mute);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .back:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+</style>

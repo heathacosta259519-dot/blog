@@ -1,0 +1,66 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url, SITE } from '../consts';
+import { allEntries } from '../lib/content';
+
+const entries = await allEntries();
+const oldest = entries.at(-1)?.date;
+---
+
+<BaseLayout title="关于" description="关于这个站和它的作者。">
+  <div class="shell">
+    <header class="page-head">
+      <h1>关于</h1>
+    </header>
+    <div class="rule"></div>
+
+    <div class="prose" style="padding-top:1.8rem">
+      <p>
+        我是 {SITE.author}。白天写点代码，晚上把白天没搞懂的东西再啃一遍，然后把啃明白的部分写在这里。
+      </p>
+
+      <h2>这个站</h2>
+      <p>
+        三件事：<strong>学习笔记</strong>（编程、Linux、一点财务）、<strong>随笔</strong>（短、随手）、
+        <strong>dotfiles</strong>（配置的来由，不是配置本身）。
+        目标是每篇都能独立成立——一年后的我打开任意一篇，不用回忆当时的上下文也能读懂。
+      </p>
+
+      <h2>怎么搭的</h2>
+      <ul>
+        <li><a href="https://astro.build" rel="noopener">Astro</a> 静态生成，内容就是仓库里的 Markdown。</li>
+        <li>托管在 GitHub Pages，走项目页子路径，零成本。</li>
+        <li>笔记从 Obsidian 库单向同步过来，只搬打了 <code>publish: true</code> 的那些。</li>
+        <li>没有追踪脚本、没有评论插件、没有广告。只留一个 <a href={url('/rss.xml')}>RSS</a>。</li>
+      </ul>
+
+      <h2>联系</h2>
+      <p>
+        仓库和 Issue 都在 <a href={SITE.github} rel="me noopener">GitHub</a>。
+        哪里写错了，直接开 issue 或 PR，比私下说更快。
+      </p>
+
+      {
+        oldest && (
+          <p class="footnote-line">
+            第一篇写于 {oldest.getUTCFullYear()} 年 {oldest.getUTCMonth() + 1} 月，目前共 {entries.length} 篇。
+          </p>
+        )
+      }
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-bottom: 1.6rem;
+  }
+
+  .footnote-line {
+    margin-top: 2.5rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--rule-soft);
+    font-size: 0.875rem;
+    color: var(--ink-mute);
+  }
+</style>

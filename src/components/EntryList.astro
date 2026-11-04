@@ -1,0 +1,41 @@
+---
+import { url } from '../consts';
+import { dot } from '../lib/date';
+
+interface Entry {
+  title: string;
+  description: string;
+  date: Date;
+  kind: 'note' | 'essay';
+  href: string;
+}
+
+interface Props {
+  entries: Entry[];
+}
+
+const { entries } = Astro.props;
+
+const kindLabel = (k: Entry['kind']) => (k === 'note' ? '笔记' : '随笔');
+---
+
+{entries.length === 0 ? (
+  <p class="entries__empty">这里还空着。第一篇正在写。</p>
+) : (
+  <ul class="entries">
+    {
+      entries.map((entry) => (
+        <li>
+          <a class="entry" href={entry.href}>
+            <time class="entry__date" datetime={entry.date.toISOString()}>
+              {dot(entry.date)}
+            </time>
+            <span class="entry__title">{entry.title}</span>
+            <span class="entry__kind">{kindLabel(entry.kind)}</span>
+            <span class="entry__desc">{entry.description}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+)}
