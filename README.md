@@ -10,6 +10,27 @@
 
 ---
 
+## 先装上这条命令
+
+```bash
+ln -sf ~/AAAmySpace/Project/blog/tools/blog.py ~/.local/bin/blog
+```
+
+之后在哪个目录都是这一条命令：
+
+| 命令 | 干什么 |
+| :--- | :--- |
+| `blog new 标题 --tags Linux,速查` | 写作库里建一篇（frontmatter + 提示块写好），顺手打开编辑器 |
+| `blog dev` | 同步 + 预览，存盘即更新 |
+| `blog list` | 站上现在有什么，几篇、几字 |
+| `blog draft 关键词` / `blog hide 关键词` | 把 `Learning` 里的某篇公开，或者撤下来 |
+| `blog ship` | 构建（含泄露扫描）→ 提交 → 推送 → 等部署结果 |
+| `blog open 关键词` | 浏览器打开线上那一页 |
+| `blog check` / `blog build` / `blog sync` | 单独的闸门、构建、同步 |
+| `blog status` | 不带参数时就是它：库在哪、几篇、工作区脏不脏 |
+
+`blog ship` 是完整的一条：任何一道闸门不过就不提交，提交信息不给就按日期自动写。下面那些 `pnpm` 命令都还能用，CLI 只是把常用动作串起来。
+
 ## 本地跑起来
 
 ```bash
@@ -124,6 +145,8 @@ scripts/
   dev.mjs              一条命令：同步 + watch + dev server
   sync-notes.mjs       第一道闸门：搬写作库、挑 publish: true、处理图片与双链
   check-leaks.mjs      第二道闸门：构建前扫描
+tools/
+  blog.py              上面那条 blog 命令，纯标准库，无依赖
 ```
 
 改配色只动 `global.css` 顶部的 `:root` 与 `html[data-theme='dark']` 两块；深色模式的代码高亮靠 `--shiki-dark` 系列变量。
