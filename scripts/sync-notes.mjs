@@ -185,6 +185,10 @@ async function run(cfg) {
     parsed.push({ file, kind, name, title, slug, slugNote, data, content, mtime });
   }
 
+  // 这个目录必须一直在：astro 的内容缓存记着上一轮的条目，目录整个消失时
+  // dev server 会去 open 一个不存在的文件，直接 ENOENT 崩掉。
+  if (!DRY) await mkdir(OUT_DIR, { recursive: true });
+
   const linkMap = new Map();
   for (const p of parsed) {
     const href = `${BASE}/notes/${p.slug}/`;

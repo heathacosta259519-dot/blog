@@ -10,9 +10,13 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { dropStaleCache } from './cache-guard.mjs';
+
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SYNC = fileURLToPath(new URL('./sync-notes.mjs', import.meta.url));
 const noSync = process.argv.includes('--no-sync');
+
+dropStaleCache();
 
 const children = [];
 const stop = (code = 0) => {

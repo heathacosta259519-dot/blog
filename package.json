@@ -8,12 +8,13 @@
     "dev": "node scripts/dev.mjs",
     "dev:plain": "astro dev",
     "start": "node scripts/dev.mjs",
-    "build": "pnpm run check:leaks && astro build",
+    "build": "node scripts/cache-guard.mjs && pnpm run check:leaks && astro build",
     "preview": "astro preview",
     "check": "astro check",
     "sync:notes": "node scripts/sync-notes.mjs",
     "sync:watch": "node scripts/sync-notes.mjs --watch",
-    "check:leaks": "node scripts/check-leaks.mjs"
+    "check:leaks": "node scripts/check-leaks.mjs",
+    "cache": "node scripts/cache-guard.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",
