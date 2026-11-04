@@ -302,14 +302,23 @@ def cmd_ship(args):
         print("  （没装 gh，看不到部署状态；过一两分钟去 Actions 页面看）")
         return
     print("→ 等部署（Ctrl-C 可以走开，不影响）")
+    sha = run(["git", "rev-parse", "HEAD"], capture=True)[:7]
     try:
         for _ in range(40):
             out = run(
                 ["gh", "api", f"repos/{repo_slug()}/actions/runs?per_page=1",
-                 "--jq", '.workflow_runs[0] | "\\(.status) \\(.conclusion // "-")"'],
+                 "--jq", '.workflow_runs[0] | "\\(.head_sha[0:7]) \\(.status) \\(.conclusion // "-")"'],
                 capture=True,
                 check=False,
             )
+            # 刚推上去时接口里还是上一次的 run，认错了会报假喜
+            if not out.startswith(sha):
+                print(f"  {out}  （还是上一次的，等新的）")
+                if not args.wait:
+                    print(f"  稍后自己看：gh run list --limit 1")
+                    return
+                subprocess.run(["sleep", "20"])
+                continue
             print(f"  {out}")
             if "completed" in out:
                 if "success" in out:
