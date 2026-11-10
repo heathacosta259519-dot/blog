@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -207,8 +208,18 @@ def cmd_new(args):
 
 def pending_changes() -> list[str]:
     """还没提交的东西 —— 也就是站上还看不到的那些。"""
-    out = run(["git", "status", "--porcelain"], capture=True, check=False)
-    return [l[3:] for l in out.splitlines() if l.strip()]
+    # ls-files 直接给路径，不用解析 porcelain 的前两列（首行前导空格会被 strip 掉）
+    names = run(
+        ["git", "ls-files", "-m", "-o", "--exclude-standard"], capture=True, check=False
+    ).splitlines()
+    staged = run(["git", "diff", "--cached", "--name-only"], capture=True, check=False).splitlines()
+    seen, out = set(), []
+    for n in names + staged:
+        n = n.strip()
+        if n and n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
 
 
 def cmd_dev(args):
@@ -220,13 +231,34 @@ def cmd_dev(args):
         print("  笔记存盘就会同步过来，但不上线；写完跑 `blog ship` 才算发布。")
     print()
 
+    cmd = ["node", str(DEV)] + (["--no-sync"] if args.no_sync else [])
+    child = subprocess.Popen(cmd, cwd=ROOT)
+    interrupted = False
+
+    # 自己接住 Ctrl-C：先让 astro 退干净，再打总结，别留孤儿进程
+    def on_signal(signum, frame):
+        nonlocal interrupted
+        interrupted = True
+        raise KeyboardInterrupt
+
+    old_int = signal.signal(signal.SIGINT, on_signal)
+    old_term = signal.signal(signal.SIGTERM, on_signal)
     try:
-        run(["node", str(DEV)] + (["--no-sync"] if args.no_sync else []))
+        child.wait()
     except KeyboardInterrupt:
         pass
     finally:
-        dirty = pending_changes()
+        if child.poll() is None:
+            child.terminate()
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                child.kill()
+        signal.signal(signal.SIGINT, old_int)
+        signal.signal(signal.SIGTERM, old_term)
+
         print()
+        dirty = pending_changes()
         if dirty:
             print(f"工作区还有 {len(dirty)} 处没提交，站上不会有这些内容：")
             for d in dirty[:6]:
@@ -235,7 +267,10 @@ def cmd_dev(args):
                 print(f"  · …另有 {len(dirty) - 6} 个")
             print("要发上去：blog ship")
         else:
-            print("工作区是干净的；要是刚写完还没同步，先 blog sync。")
+            print("工作区是干净的 —— 线上的就是最新的一版。")
+
+    if interrupted:
+        raise SystemExit(130)
 
 
 def cmd_sync(args):
