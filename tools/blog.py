@@ -205,9 +205,37 @@ def cmd_new(args):
     print(f"  写完跑 `blog dev` 就能边写边看；`blog ship` 直接发。")
 
 
+def pending_changes() -> list[str]:
+    """还没提交的东西 —— 也就是站上还看不到的那些。"""
+    out = run(["git", "status", "--porcelain"], capture=True, check=False)
+    return [l[3:] for l in out.splitlines() if l.strip()]
+
+
 def cmd_dev(args):
     need("node", "先装 Node.js")
-    run(["node", str(DEV)] + (["--no-sync"] if args.no_sync else []))
+
+    # 这个命令只动本地：写清楚了，免得以为存了盘就等于发上线了
+    print("本地预览 —— 只在这里能看到，线上还是旧版。")
+    if not args.no_sync:
+        print("  笔记存盘就会同步过来，但不上线；写完跑 `blog ship` 才算发布。")
+    print()
+
+    try:
+        run(["node", str(DEV)] + (["--no-sync"] if args.no_sync else []))
+    except KeyboardInterrupt:
+        pass
+    finally:
+        dirty = pending_changes()
+        print()
+        if dirty:
+            print(f"工作区还有 {len(dirty)} 处没提交，站上不会有这些内容：")
+            for d in dirty[:6]:
+                print(f"  · {d}")
+            if len(dirty) > 6:
+                print(f"  · …另有 {len(dirty) - 6} 个")
+            print("要发上去：blog ship")
+        else:
+            print("工作区是干净的；要是刚写完还没同步，先 blog sync。")
 
 
 def cmd_sync(args):
