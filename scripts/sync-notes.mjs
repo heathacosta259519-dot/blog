@@ -28,9 +28,11 @@ import { basename, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const OUT_DIR = join(ROOT, 'src', 'content', 'notes');
+const CONTENT_DIR = join(ROOT, 'src', 'content');
+/** 两个集合，各走各的目录；分类由 frontmatter 的 kind 决定，不由来源目录决定 */
+const OUT_DIRS = { note: join(CONTENT_DIR, 'notes'), essay: join(CONTENT_DIR, 'essays') };
 const ATTACH_DIR = join(ROOT, 'public', 'attachments');
-const MANIFEST = join(OUT_DIR, '.sync-manifest.json');
+const MANIFEST = join(OUT_DIRS.note, '.sync-manifest.json');
 const LOCAL_CONFIG = join(ROOT, 'scripts', 'sync.local.json');
 const BASE = (process.env.BASE_PATH ?? '/blog').replace(/\/$/, '');
 
@@ -178,24 +180,41 @@ async function run(cfg) {
       slug = 'note-' + createHash('sha1').update(relative(VAULT, file)).digest('hex').slice(0, 8);
       slugNote = `${relative(VAULT, file)}：文件名里没有可用字符，地址退化成 /notes/${slug}/，建议在 frontmatter 写 slug:`;
     }
+    // 站上的分类：frontmatter 的 kind 说了算。
+    //   kind: essay → 随笔，kind: note → 笔记
+    //   不写的时候按来源猜：写作库（blog 目录）是随笔，Learning 里的是笔记。
+    const rawKind = String(data.kind ?? '').trim().toLowerCase();
+    let entryKind;
+    let kindNote = null;
+    if (rawKind === 'essay' || rawKind === '随笔') entryKind = 'essay';
+    else if (rawKind === 'note' || rawKind === '笔记') entryKind = 'note';
+    else if (rawKind) {
+      entryKind = kind === 'folder' ? 'essay' : 'note';
+      kindNote = `${relative(VAULT, file)}：kind 只认 note/essay（或 笔记/随笔），"${data.kind}" 看不懂，按来源当作${entryKind === 'essay' ? '随笔' : '笔记'}`;
+    } else {
+      entryKind = kind === 'folder' ? 'essay' : 'note';
+    }
     let mtime = new Date();
     try {
       mtime = (await stat(file)).mtime;
     } catch {}
-    parsed.push({ file, kind, name, title, slug, slugNote, data, content, mtime });
+    parsed.push({ file, kind, entryKind, kindNote, name, title, slug, slugNote, data, content, mtime });
   }
 
-  // 这个目录必须一直在：astro 的内容缓存记着上一轮的条目，目录整个消失时
+  // 这两个目录必须一直在：astro 的内容缓存记着上一轮的条目，目录整个消失时
   // dev server 会去 open 一个不存在的文件，直接 ENOENT 崩掉。
-  if (!DRY) await mkdir(OUT_DIR, { recursive: true });
+  if (!DRY) {
+    for (const dir of Object.values(OUT_DIRS)) await mkdir(dir, { recursive: true });
+  }
 
   const linkMap = new Map();
   for (const p of parsed) {
-    const href = `${BASE}/notes/${p.slug}/`;
+    const href = `${BASE}/${p.entryKind === 'essay' ? 'essays' : 'notes'}/${p.slug}/`;
     linkMap.set(p.name, href);
     linkMap.set(p.title, href);
   }
   for (const p of parsed) if (p.slugNote) warnings.push(p.slugNote);
+  for (const p of parsed) if (p.kindNote) warnings.push(p.kindNote);
 
   // 附件索引：只在真的遇到 ![[附件]] 时才扫，省一次全库遍历
   let attachIndex = null;
@@ -283,6 +302,7 @@ async function run(cfg) {
       title: String(p.title).replace(/^["']|["']$/g, ''),
       description: p.data.description ? String(p.data.description) : firstParagraph(body),
       date: isoDay(date),
+      kind: p.entryKind,
       ...(p.data.updated ? { updated: isoDay(p.data.updated) } : {}),
       tags,
       source: relative(VAULT, p.file),
@@ -301,16 +321,18 @@ async function run(cfg) {
       '',
     ].join('\n');
 
-    written.push(`${p.slug}.md`);
+    const dir = OUT_DIRS[p.entryKind];
+    written.push({ kind: p.entryKind, file: `${p.slug}.md` });
     if (!DRY) {
-      const dest = join(OUT_DIR, `${p.slug}.md`);
+      const dest = join(dir, `${p.slug}.md`);
       const prev = await readFile(dest, 'utf8').catch(() => null);
       if (prev !== out) await writeFile(dest, out, 'utf8');
     }
   }
 
-  // 复制附件（体积不变就跳过，省 IO）
   const attachNames = [...attachments.values()];
+
+  // 复制附件（体积不变就跳过，省 IO）
   if (!DRY && attachments.size > 0) await mkdir(ATTACH_DIR, { recursive: true });
   for (const [src, outName] of attachments) {
     if (DRY) continue;
@@ -323,25 +345,45 @@ async function run(cfg) {
   }
 
   // 清理上一轮有、这一轮没有的
-  let old = { files: [], attachments: [] };
+  // 清单记 { note: [...], essay: [...] }，两类各自对账，跨类移动也算删除 + 新增
+  let old = { note: [], essay: [], attachments: [] };
   try {
-    old = { files: [], attachments: [], ...JSON.parse(await readFile(MANIFEST, 'utf8')) };
+    const raw = JSON.parse(await readFile(MANIFEST, 'utf8'));
+    // 老清单是 { files: [...] }，那时不分类型、全在 notes/ 下 —— 当作笔记对账
+    old = {
+      note: raw.note ?? raw.files ?? [],
+      essay: raw.essay ?? [],
+      attachments: raw.attachments ?? [],
+    };
   } catch {}
-  const staleFiles = old.files.filter((f) => !written.includes(f));
+  const stale = [];
+  for (const kind of ['note', 'essay']) {
+    const now = written.filter((w) => w.kind === kind).map((w) => w.file);
+    for (const f of old[kind] ?? []) {
+      if (!now.includes(f)) stale.push({ kind, file: f });
+    }
+  }
   const staleAttach = old.attachments.filter((f) => !attachNames.includes(f));
   if (!DRY) {
-    for (const f of staleFiles) await unlink(join(OUT_DIR, f)).catch(() => {});
+    for (const { kind, file } of stale) await unlink(join(OUT_DIRS[kind], file)).catch(() => {});
     for (const f of staleAttach) await unlink(join(ATTACH_DIR, f)).catch(() => {});
-    await writeFile(MANIFEST, JSON.stringify({ files: written, attachments: attachNames }, null, 2) + '\n', 'utf8');
+    const manifest = {
+      note: written.filter((w) => w.kind === 'note').map((w) => w.file),
+      essay: written.filter((w) => w.kind === 'essay').map((w) => w.file),
+      attachments: attachNames,
+    };
+    await writeFile(MANIFEST, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   }
 
   // 报告
   const stamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const counts = { note: 0, essay: 0 };
+  for (const w of written) counts[w.kind] += 1;
   console.log(
-    `[sync-notes ${stamp}] ${written.length} 篇，${attachNames.length} 个附件${DRY ? '（dry-run）' : ''}`,
+    `[sync-notes ${stamp}] ${written.length} 篇（随笔 ${counts.essay} / 笔记 ${counts.note}），${attachNames.length} 个附件${DRY ? '（dry-run）' : ''}`,
   );
-  for (const f of written) console.log(`  + ${f}`);
-  for (const s of staleFiles) console.log(`  - ${s}（源文件已撤回发布或删除）`);
+  for (const w of written) console.log(`  + ${w.kind === 'essay' ? 'essays' : 'notes'}/${w.file}`);
+  for (const s of stale) console.log(`  - ${s.kind === 'essay' ? 'essays' : 'notes'}/${s.file}（源文件已撤回发布、删除或改了分类）`);
   for (const s of staleAttach) console.log(`  - attachments/${s}`);
   for (const w of warnings) console.warn(`  ! ${w}`);
   if (WRITE_HINT && written.length === 0) {

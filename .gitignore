@@ -8,3 +8,4 @@ dist/
 src/content/notes/.sync-manifest.json
 scripts/sync.local.json
 scripts/leak-rules.local.json
+.alma-snapshots

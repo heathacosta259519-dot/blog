@@ -15,38 +15,29 @@ export type Entry = {
 
 const byDateDesc = (a: Entry, b: Entry) => b.date.getTime() - a.date.getTime();
 
+/** 文章路径：id 带目录前缀（notes/xxx），slug 取最后一段，URL 由 kind 决定 */
+export function postHref(id: string, kind: 'note' | 'essay'): string {
+  const slug = id.split('/').pop() ?? id;
+  return url(`/${kind === 'essay' ? 'essays' : 'notes'}/${slug}/`);
+}
+
 /** 笔记 + 随笔，按时间倒序，草稿不参与 */
 export async function allEntries(): Promise<Entry[]> {
-  const [notes, essays] = await Promise.all([
-    getCollection('notes', ({ data }) => !data.draft),
-    getCollection('essays', ({ data }) => !data.draft),
-  ]);
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
 
-  const mapped: Entry[] = [
-    ...notes.map((n) => ({
-      title: n.data.title,
-      description: n.data.description,
-      date: n.data.date,
-      updated: n.data.updated,
-      kind: 'note' as const,
-      tags: n.data.tags,
-      href: url(`/notes/${n.id}/`),
-      id: n.id,
-      progress: n.data.progress,
-    })),
-    ...essays.map((e) => ({
-      title: e.data.title,
-      description: e.data.description,
-      date: e.data.date,
-      updated: e.data.updated,
-      kind: 'essay' as const,
-      tags: e.data.tags,
-      href: url(`/essays/${e.id}/`),
-      id: e.id,
-    })),
-  ];
-
-  return mapped.sort(byDateDesc);
+  return posts
+    .map((p) => ({
+      title: p.data.title,
+      description: p.data.description,
+      date: p.data.date,
+      updated: p.data.updated,
+      kind: p.data.kind,
+      tags: p.data.tags,
+      href: postHref(p.id, p.data.kind),
+      id: p.id,
+      progress: p.data.progress,
+    }))
+    .sort(byDateDesc);
 }
 
 export async function entriesOf(kind: 'note' | 'essay'): Promise<Entry[]> {

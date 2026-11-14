@@ -146,22 +146,29 @@ def pick(candidates: list[Path], keyword: str, root: Path) -> Path:
 
 
 def published() -> list[dict]:
-    """src/content/notes/ 里的生成物：就是站上现在有的东西。"""
+    """src/content/{notes,essays}/ 里的生成物：就是站上现在有的东西。"""
     out = []
-    for f in sorted((ROOT / "src" / "content" / "notes").glob("*.md")):
-        text = f.read_text(encoding="utf-8")
-        fm, body = frontmatter_split(text)
-        words = len(re.findall(r"[\u4e00-\u9fa5]", body)) + len(re.findall(r"[A-Za-z0-9_]+", body))
-        out.append(
-            {
-                "slug": f.stem,
-                "title": frontmatter_get(fm, "title") or f.stem,
-                "date": frontmatter_get(fm, "date") or "",
-                "source": frontmatter_get(fm, "source") or "",
-                "words": words,
-            }
-        )
+    for kind, sub in (("note", "notes"), ("essay", "essays")):
+        for f in sorted((ROOT / "src" / "content" / sub).glob("*.md")):
+            text = f.read_text(encoding="utf-8")
+            fm, body = frontmatter_split(text)
+            words = len(re.findall(r"[\u4e00-\u9fa5]", body)) + len(re.findall(r"[A-Za-z0-9_]+", body))
+            out.append(
+                {
+                    "slug": f.stem,
+                    "kind": kind,
+                    "title": frontmatter_get(fm, "title") or f.stem,
+                    "date": frontmatter_get(fm, "date") or "",
+                    "source": frontmatter_get(fm, "source") or "",
+                    "words": words,
+                }
+            )
     return sorted(out, key=lambda e: e["date"], reverse=True)
+
+
+def entry_path(item: dict) -> str:
+    """站上的路径：随笔走 /essays/，笔记走 /notes/。"""
+    return f"/{'essays' if item.get('kind') == 'essay' else 'notes'}/{item['slug']}/"
 
 
 # ─────────────────────────── 命令 ───────────────────────────
@@ -184,11 +191,13 @@ def cmd_new(args):
         "---\n"
         f"date: {date.today().isoformat()}\n"
         f"tags: {tags}\n"
+        "kind: essay\n"
         "---\n\n"
         f"# {title}\n\n"
         "%%\n"
         "这个库里写的一切都会公开。\n"
         "- tags 会变成站上的标签，date 决定排序\n"
+        "- kind 决定站上算「随笔」还是「笔记」：essay / note\n"
         "- 想临时扣下这篇：frontmatter 加 publish: false\n"
         "- 这一段同步时会被整段删掉\n"
         "%%\n\n"
@@ -292,8 +301,9 @@ def cmd_list(args):
     print(f"{len(items)} 篇，约 {total:,} 字\n")
     for i in items:
         src = "写作库" if i["source"].startswith(("blog/", "Blog_dosc")) else "Learning"
+        label = "随笔" if i["kind"] == "essay" else "笔记"
         print(f"  {i['date']}  {i['title']}")
-        print(f"             /notes/{i['slug']}/  ·  {src}  ·  {i['words']} 字")
+        print(f"             [{label}] {entry_path(i)}  ·  {src}  ·  {i['words']} 字")
     if args.verbose:
         print("\n源文件：")
         for i in items:
@@ -411,9 +421,10 @@ def cmd_open(args):
     else:
         hits = [i for i in items if args.keyword.lower() in i["title"].lower() or args.keyword.lower() in i["slug"].lower()]
         target = pick_text(hits, args.keyword)
-    url = f"{SITE}/notes/{urllib.parse.quote(target['slug'])}/"
+    path = entry_path(target)
+    url = f"{SITE}{urllib.parse.quote(path)}"
     base = load_config()["base"]
-    local = f"http://localhost:4321{base}/notes/{urllib.parse.quote(target['slug'])}/"
+    local = f"http://localhost:4321{base}{urllib.parse.quote(path)}"
     print(f"线上：{url}\n本地：{local}")
     webbrowser.open(url if not args.local else local)
 

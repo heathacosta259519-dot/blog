@@ -58,6 +58,8 @@ pnpm dev --no-sync      # 或者 pnpm dev:plain
 | 学习笔记 `Learning/` | 只有 `publish: true` 的才公开 | 从旧笔记里挑着公开 |
 | 仓库里的 `src/content/essays/` | 直接就是文章 | 短随笔，不经过 Obsidian |
 
+站上分成「笔记」和「随笔」两个栏目，但这跟文章存在哪无关 —— 由 frontmatter 的 `kind` 决定（见下）。写作库默认算随笔，`Learning` 默认算笔记。
+
 两个 Obsidian 来源靠 `scripts/sync.local.json` 指路（不进仓库，写在本地）：
 
 ```json
@@ -84,13 +86,16 @@ frontmatter 只认这几个键：
 ---
 date: 2026-11-04          # 排序用；没有就取文件修改时间
 tags: [Linux, 速查]       # 变成站上的标签
+kind: essay                # 站上算「随笔」还是「笔记」：essay / note（也认中文「随笔」「笔记」）
 title: 可选               # 缺省取文件名或正文第一个 H1
 slug: 可选               # 想换地址时写；默认直接拿文件名，中文也行
 description: 可选         # 缺省取正文第一段
-progress: 读完《…》第 5 章后整理   # 可选，显示在文章页左侧信息栏
+progress: 读完《…》第 5 章后整理   # 可选，显示在文章页左侧信息栏（只在笔记里用）
 publish: false            # 可选，在写作库里单独扣下一篇
 ---
 ```
+
+`kind` 决定站上的分类，跟文章存在哪个目录无关：`essay` 走 `/essays/`，`note` 走 `/notes/`。不写的时候按来源猜 —— 写作库（`Blog_dosc/blog`）里的是随笔，`Learning` 里的是笔记。
 
 `draft: true` 的东西不进列表、RSS 和 sitemap。
 
@@ -109,7 +114,7 @@ publish: false            # 可选，在写作库里单独扣下一篇
 | 正文还是空的 | 先不同步，免得站上多一个空白页 |
 | mermaid 代码块 | 前端渲染成图，跟着主题换配色 |
 
-源文件取消发布或删掉，下次同步会把对应文件和图片一起清干净 —— 记录在 `src/content/notes/.sync-manifest.json`，手写的内容不在清单里，不会被误删。
+源文件取消发布或删掉，下次同步会把对应文件和图片一起清干净 —— 记录在 `src/content/notes/.sync-manifest.json`（按 note/essay 分开记，改了分类会把旧的那个删掉），手写的内容不在清单里，不会被误删。
 
 ## 发布闸门
 
@@ -133,8 +138,8 @@ publish: false            # 可选，在写作库里单独扣下一篇
 ```
 src/
   consts.ts            站点信息与 url() —— 站内链接一律走它，换 base 不用全站搜
-  content.config.ts    两个集合的表结构：essays（随笔）、notes（笔记）
-  content/             文章本体（notes/ 里是同步产物）
+  content.config.ts    集合 posts 的表结构（kind 决定站上算笔记还是随笔）
+  content/             文章本体（notes/ 与 essays/ 里都可能混有同步产物）
   layouts/             BaseLayout（头尾/主题/动效）、EntryLayout（文章页 + mermaid）
   components/          EntryList（列表）
   lib/                 content.ts（取数与排序）、date.ts（一律按 UTC 格式化）

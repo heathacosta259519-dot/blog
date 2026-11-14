@@ -1,32 +1,34 @@
 ---
 import { getCollection, render } from 'astro:content';
 import EntryLayout from '../../layouts/EntryLayout.astro';
-import { readingTime } from '../../lib/content';
-import { url } from '../../consts';
+import { readingTime, postHref } from '../../lib/content';
 
 export async function getStaticPaths() {
-  const essays = await getCollection('essays', ({ data }) => !data.draft);
-  return essays.map((essay) => ({
-    params: { slug: essay.id },
-    props: { essay },
+  const posts = await getCollection(
+    'posts',
+    ({ data }) => !data.draft && data.kind === 'essay',
+  );
+  return posts.map((post) => ({
+    params: { slug: post.id.split('/').pop() },
+    props: { post },
   }));
 }
 
-const { essay } = Astro.props;
-const { Content } = await render(essay);
-const minutes = readingTime(essay.body);
+const { post } = Astro.props;
+const { Content } = await render(post);
+const minutes = readingTime(post.body);
 ---
 
 <EntryLayout
   entry={{
-    title: essay.data.title,
-    description: essay.data.description,
-    date: essay.data.date,
-    updated: essay.data.updated,
+    title: post.data.title,
+    description: post.data.description,
+    date: post.data.date,
+    updated: post.data.updated,
     kind: 'essay',
-    tags: essay.data.tags,
-    href: url(`/essays/${essay.id}/`),
-    id: essay.id,
+    tags: post.data.tags,
+    href: postHref(post.id, 'essay'),
+    id: post.id.split('/').pop() ?? post.id,
   }}
   minutes={minutes}
 >
